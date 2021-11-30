@@ -1,36 +1,38 @@
-VERSION        ?= 0.0.666
-IMAGE_NAME     := "quay.io/snowdrop/cert-manager-webhook-godaddy"
-IMAGE_TAG      := "latest"
-TEST_ZONE_NAME ?= example.com.
+OS ?= $(shell go env GOOS)
+ARCH ?= $(shell go env GOARCH)
+
+IMAGE_NAME := "halytskyi/cert-manager-godaddy-webhook"
+IMAGE_TAG := "latest"
 
 OUT := $(shell pwd)/_out
 
+KUBEBUILDER_VERSION=2.3.2
+
 $(shell mkdir -p "$(OUT)")
 
-verify:
-	sh ./scripts/fetch-test-binaries.sh
+test: _test/kubebuilder
 	go test -v .
 
-test:
-	TEST_ZONE_NAME=$(TEST_ZONE_NAME) go test .
+_test/kubebuilder:
+	curl -fsSL https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KUBEBUILDER_VERSION)/kubebuilder_$(KUBEBUILDER_VERSION)_$(OS)_$(ARCH).tar.gz -o kubebuilder-tools.tar.gz
+	mkdir -p _test/kubebuilder
+	tar -xvf kubebuilder-tools.tar.gz
+	mv kubebuilder_$(KUBEBUILDER_VERSION)_$(OS)_$(ARCH)/bin _test/kubebuilder/
+	rm kubebuilder-tools.tar.gz
+	rm -R kubebuilder_$(KUBEBUILDER_VERSION)_$(OS)_$(ARCH)
 
-compile:
-    go mod download -json
-	CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+clean: clean-kubebuilder
+
+clean-kubebuilder:
+	rm -Rf _test/kubebuilder
 
 build:
 	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
 
-push:
-	docker push "$(IMAGE_NAME):$(IMAGE_TAG)"
-
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:
 	helm template \
-	    --name godaddy-webhook \
+	    --name example-webhook \
         --set image.repository=$(IMAGE_NAME) \
         --set image.tag=$(IMAGE_TAG) \
-        deploy/godaddy-webhook > "$(OUT)/rendered-manifest.yaml"
-
-version:
-	@echo $(VERSION)
+        deploy/example-webhook > "$(OUT)/rendered-manifest.yaml"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
@@ -87,7 +88,7 @@ type godaddyDNSProviderConfig struct {
 	Production    bool   `json:"production"`
 
 	// +optional. The TTL of the TXT record used for the DNS challenge
-	TTL           int    `json:"ttl"`
+	TTL int `json:"ttl"`
 	// +optional.  API request timeout
 	HttpTimeout int `json:"timeout"`
 	// +optional.  Maximum waiting time for DNS propagation
@@ -131,7 +132,7 @@ func (c *godaddyDNSSolver) apiURL(cfg godaddyDNSProviderConfig) string {
 func (c *godaddyDNSSolver) extractApiTokenFromSecret(cfg *godaddyDNSProviderConfig, ch *v1alpha1.ChallengeRequest) error {
 	sec, err := c.client.CoreV1().
 		Secrets(ch.ResourceNamespace).
-		Get(cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
+		Get(context.TODO(), cfg.APIKeySecretRef.LocalObjectReference.Name, metaV1.GetOptions{})
 	if err != nil {
 		return err
 	}
